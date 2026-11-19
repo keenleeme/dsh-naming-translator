@@ -65,6 +65,29 @@ dsh plugin add /path/to/naming-translator
 
 ---
 
+## 路线一·补：创建 GitHub 仓库并推送
+
+仓库地址已经写进 `package.json`，但**仓库本身还没在 GitHub 上创建**，所以下面这一步需要你手动做（我没有你的 GitHub token，无法代建）。
+
+1. 打开 <https://github.com/new>，填：
+   - **Repository name**：`dsh-naming-translator`
+   - **Visibility**：`Public`（上架市场必须公开，市场从 GitHub 抓说明和截图）
+   - **不要**勾选 "Add a README file"、"Add .gitignore"、"Choose a license" —— 这三样本地都有了，勾了会造成首次推送冲突。
+2. 创建后回到本地推送：
+
+```bash
+cd naming-translator
+git push -u origin main
+```
+
+首次推送会弹出 GitHub 登录窗口（本机已配置 Git Credential Manager，账号 `keenleeme` 已在其中）。
+
+推送完确认：<https://github.com/keenleeme/dsh-naming-translator>
+
+> 本机 `git init` 与首次提交已经完成（commit `ededde3`，21 个文件、2881 行），`origin` 已指向 `https://github.com/keenleeme/dsh-naming-translator.git`，`.gitignore` 也确认会排除 `*.tgz`。所以只差上面这两步。
+
+---
+
 ## 路线二：发布到 npm 公开包
 
 ```bash

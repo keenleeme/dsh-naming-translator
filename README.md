@@ -8,6 +8,15 @@
 登录失败原因    →  loginFailReason
 ```
 
+[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-plugin-1f6feb)](https://github.com/deepseek-ai/deepseek-harness)
+[![license: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![dsh >= 0.2.2-rc.3](https://img.shields.io/badge/dsh-%3E%3D0.2.2--rc.3-blue)](PUBLISHING.md)
+
+- 输入中文，得到能直接敲进代码的标识符——不用切窗口，不用问模型再手动改写。
+- **词典优先**：内置约 400 条开发词汇 + 预置 143 条领域词条，全部本地即时出结果。
+- **模型兜底**：前两步覆盖不到的部分才发一次请求，且由 Host 折成 camelCase，模型啰嗦也不会污染变量名。
+- 无依赖、无构建步骤，`dsh plugin add` 装完即用。
+
 ## 怎么用
 
 1. 点击输入框工具行左侧的 **`{}` 命名** 按钮，弹出面板。
