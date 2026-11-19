@@ -106,7 +106,7 @@ dsh plugin add dsh-naming-translator
 **注意同名问题**：`dsh-naming-translator` 目前在 npm 上**未被占用**（已实测），但谁先发布谁拥有。如果不想赌，可以先用 `npm view dsh-naming-translator` 复查一次。
 
 ---
-
+ 
 ## 路线三：上架 DSH 插件市场（真正意义上的「上线」）
 
 这是让用户在 **Plugins → Discover** 里搜到你的唯一途径。关键事实：**市场本身不接受投稿**，它读的是一个独立的精选清单仓库。
@@ -121,23 +121,65 @@ dsh plugin add dsh-naming-translator
 你的 npm 包  →  awesome-dsh-plugin 仓库 PR  →  市场自动同步（通常一天内）
 ```
 
-步骤：
+### 条目已经写好了
 
-1. **先发布到 npm**（路线二）。精选清单按包名映射，没有可安装的 npm 包就没有意义。
-2. 准备一个 GitHub 仓库放源码，README 写清用途与截图（市场会从 GitHub 抓图和说明）。
-3. Fork [`awesome-dsh-plugin/awesome-dsh-plugin`](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin)，在清单里加**一条**条目，向该仓库开 PR。
-4. PR 合并后，`awesome-dsh-plugin.com/plugins.json` 由 CI 每日刷新，市场和 `plugin_market` 工具随之可见。
+投稿只需要**一个文件**，放在该仓库的 `data/plugins/<owner>__<repo>.yml`。本仓库已按此格式准备好，内容如下：
 
-市场对插件的硬性要求，逐条对照本包：
+```yaml
+url: https://github.com/keenleeme/dsh-naming-translator
+name: keenleeme/dsh-naming-translator
+category: dev
+description:
+  en: 'Translates Chinese phrases into camelCase variable and method names from the composer tool row, using a built-in developer dictionary first and one model call only when it cannot cover the phrase.'
+  zh: '在输入框工具栏把中文表述翻译成 camelCase 变量名或方法名：优先查内置开发词典，词典覆盖不到时才调用一次模型。'
+icon: https://raw.githubusercontent.com/keenleeme/dsh-naming-translator/main/assets/icon-180.png
+```
+
+原件在 [`.awesome-dsh-plugin/keenleeme__dsh-naming-translator.yml`](.awesome-dsh-plugin/keenleeme__dsh-naming-translator.yml)，`npm test` 里的 `dnt-registry-check.cjs` 会逐条核对它是否符合收录规则（分类取值、描述标点、`: ` 引号转义、icon 必须是 GitHub 托管的位图、截图路径不能跳出仓库等）。
+
+### 开 PR 的步骤
+
+```bash
+# 1. Fork 并克隆清单仓库
+git clone https://github.com/<你的账号>/awesome-dsh-plugin.git
+cd awesome-dsh-plugin
+
+# 2. 新建分支，放入那一个文件
+git checkout -b add-dsh-naming-translator
+mkdir -p data/plugins
+cp <本仓库>/.awesome-dsh-plugin/keenleeme__dsh-naming-translator.yml data/plugins/
+
+# 3. 提交并推送
+git add data/plugins/keenleeme__dsh-naming-translator.yml
+git commit -m "Add dsh-naming-translator"
+git push -u origin add-dsh-naming-translator
+```
+
+然后在 GitHub 上开 PR。**不要手工改 README**——两份 README 都由 `data/plugins/*.yml` 生成，会自动重新生成。
+
+### 三道硬门槛（提交前必须满足）
+
+| 门槛 | 要求 | 本仓库状态 |
+|---|---|---|
+| 仓库年龄 | ≥ 1 天（CI 自动检查） | ⚠️ **刚建好，需要等到第二天** |
+| `dsh-plugin` topic | 在 GitHub 仓库页设置 | ⚠️ **需在仓库 Settings 里手动添加** |
+| `dsh.bundle` 清单 | `package.json` 声明 `dsh.bundle.patch` | ✅ 已声明，`cordis.patch.yml` 就位 |
+
+仓库年龄不满足时 PR 会被 gate 挡住，但**几小时后自己会达标**，不需要重推。topic 需要手动点：仓库页右上 **⚙ Settings** → Topics 里加 `dsh-plugin`。
+
+### 市场对插件的硬性要求，逐条对照
 
 | 要求 | 本包状态 |
 |---|---|
-| 市场安装仅限精选清单内的来源 | 需要上面那步 PR |
-| 构建脚本默认被 pnpm≥10 拦截 | ✅ 本包无构建脚本、无依赖 |
-| 提供 `meta.title` / `meta.description`（en + 用户语言） | ✅ `locale/en.json`、`locale/zh.json` |
-| 提供图标（SVG/PNG/JPEG/WebP ≤ 256 KiB） | ✅ `icon.svg`，756 B |
+| 市场安装仅限精选清单内的来源 | ✅ 条目已备好，只差 PR |
+| 构建脚本默认被 pnpm≥10 拦截 | ✅ 无构建脚本、无依赖 |
+| `meta.title` / `meta.description`（en + 用户语言） | ✅ `locale/en.json`、`locale/zh.json` |
+| 插件列表图标（SVG/PNG/JPEG/WebP ≤ 256 KiB） | ✅ `icon.svg`，756 B |
+| 市场卡片图标：**必须是位图** | ✅ `assets/icon-180.png`（180×180，SVG 会被拒） |
+| 截图（1–8 张，GitHub 托管） | ✅ `screenshots.json` → `assets/preview.png` |
 | 声明 `engines.dsh` 供兼容性过滤 | ✅ `>=0.2.2-rc.3` |
 | README 说明功能与用法 | ✅ |
+| 描述必须属实，不带营销词 | ✅ 数字（约 400 条 / 143 条）与代码一致，自检脚本会核对 |
 
 ---
 

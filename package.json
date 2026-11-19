@@ -38,7 +38,7 @@
   },
   "icon": "./icon.svg",
   "scripts": {
-    "test": "node tools/dnt-test.cjs && node tools/dnt-seed-audit.cjs && node tools/dnt-host-test.mjs && node tools/dnt-manifest-test.cjs && node tools/dnt-render-test.cjs && node tools/dnt-apply-test.cjs && node tools/dnt-token-test.cjs",
+    "test": "node tools/dnt-test.cjs && node tools/dnt-seed-audit.cjs && node tools/dnt-host-test.mjs && node tools/dnt-manifest-test.cjs && node tools/dnt-registry-check.cjs && node tools/dnt-render-test.cjs && node tools/dnt-apply-test.cjs && node tools/dnt-token-test.cjs",
     "prepublishOnly": "npm test"
   },
   "dsh": {

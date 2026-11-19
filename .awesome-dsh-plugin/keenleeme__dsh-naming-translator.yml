@@ -1,0 +1,7 @@
+url: https://github.com/keenleeme/dsh-naming-translator
+name: keenleeme/dsh-naming-translator
+category: dev
+description:
+  en: 'Translates Chinese phrases into camelCase variable and method names from the composer tool row, using a built-in developer dictionary first and one model call only when it cannot cover the phrase.'
+  zh: '在输入框工具栏把中文表述翻译成 camelCase 变量名或方法名：优先查内置开发词典，词典覆盖不到时才调用一次模型。'
+icon: https://raw.githubusercontent.com/keenleeme/dsh-naming-translator/main/assets/icon-180.png

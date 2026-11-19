@@ -8,3 +8,6 @@ node_modules/
 Thumbs.db
 .vscode/
 .idea/
+
+# Throwaway files the asset scripts create next to their output
+assets/_*
