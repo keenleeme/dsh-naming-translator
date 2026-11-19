@@ -1,0 +1,66 @@
+{
+  "name": "dsh-naming-translator",
+  "version": "1.0.0",
+  "description": "Translates Chinese phrases into camelCase variable and method names from the composer tool row: built-in developer dictionary first, model fallback for anything it cannot cover.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "naming",
+    "identifier",
+    "translator",
+    "camelCase",
+    "i18n"
+  ],
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.2.2-rc.3"
+  },
+  "homepage": "https://github.com/keenleeme/dsh-naming-translator#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keenleeme/dsh-naming-translator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/keenleeme/dsh-naming-translator/issues"
+  },
+  "author": {
+    "name": "keenleeme",
+    "url": "https://github.com/keenleeme"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "icon": "./icon.svg",
+  "scripts": {
+    "test": "node tools/dnt-test.cjs && node tools/dnt-seed-audit.cjs && node tools/dnt-host-test.mjs && node tools/dnt-manifest-test.cjs && node tools/dnt-render-test.cjs && node tools/dnt-apply-test.cjs && node tools/dnt-token-test.cjs",
+    "prepublishOnly": "npm test"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "icon.svg",
+    "locale/*.json",
+    "README.md",
+    "LICENSE"
+  ]
+}

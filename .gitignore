@@ -1,0 +1,10 @@
+# Build and dependency noise
+node_modules/
+*.tgz
+*.log
+
+# Editor and OS cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

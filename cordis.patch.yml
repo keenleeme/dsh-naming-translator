@@ -1,0 +1,6 @@
+# Naming Translator bundle patch: one Host row that owns the model-fallback
+# route and the per-boot bridge token, plus the browser half declared by
+# `dsh.client` in package.json (which registers the composer tool-row control).
+- insert:
+    - id: naming-translator
+      name: 'dsh-naming-translator'
