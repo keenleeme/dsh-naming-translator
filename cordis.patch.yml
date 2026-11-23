@@ -3,4 +3,4 @@
 # `dsh.client` in package.json (which registers the composer tool-row control).
 - insert:
     - id: naming-translator
-      name: 'dsh-naming-translator'
+      name: '@xpeanut/dsh-naming-translator'

@@ -91,12 +91,18 @@ Host 用 `ctx.llm.stream()` 发一次单轮请求，模型只需要回一串英�
 
 ## 安装
 
-这是标准的 DSH bundle 插件，包名 `dsh-naming-translator`，没有任何依赖和构建步骤。
+这是标准的 DSH bundle 插件，npm 包名 `@xpeanut/dsh-naming-translator`，没有任何依赖和构建步骤。
 
-**从 npm**（发布后可用）：
+**从 npm**：
 
 ```bash
-dsh plugin add dsh-naming-translator
+dsh plugin add @xpeanut/dsh-naming-translator
+```
+
+**从 GitHub**（不经过 npm）：
+
+```bash
+dsh plugin add github:keenleeme/dsh-naming-translator
 ```
 
 **从本地目录**（开发或自用）：
@@ -155,7 +161,7 @@ npm test
 
 ```bash
 npm pack
-tar -xzf dsh-naming-translator-*.tgz
+tar -xzf xpeanut-dsh-naming-translator-*.tgz
 node tools/dnt-tarball-check.mjs ./package
 ```
 

@@ -18,11 +18,11 @@
  * - Every failure is a diagnosable JSON error rather than a 500 with a stack:
  *   the panel shows the reason and keeps the dictionary answer.
  *
- * @module dsh-naming-translator
+ * @module @xpeanut/dsh-naming-translator
  */
 
 /** Package name; also the client module id and the storage namespace prefix. */
-const PACKAGE_NAME = 'dsh-naming-translator'
+const PACKAGE_NAME = '@xpeanut/dsh-naming-translator'
 
 /** Exact web route the browser half calls. Plugin-owned, so no collision. */
 const ROUTE_PATH = '/naming-translator/translate'

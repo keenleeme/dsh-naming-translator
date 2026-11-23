@@ -51,7 +51,7 @@ function check(label, condition, detail) {
   console.log(`${condition ? 'PASS' : 'FAIL'} ${label}${condition ? '' : ` :: ${detail}`}`)
 }
 
-check('bundle registers under the package name', registration.id === 'dsh-naming-translator', registration.id)
+check('bundle registers under the package name', registration.id === '@xpeanut/dsh-naming-translator', registration.id)
 check('inject names slots and locale', bundle.inject.join(',') === 'slots,locale', bundle.inject.join(','))
 
 const registeredDictionaries = []
@@ -92,8 +92,8 @@ check('zh and en carry identical key sets', zhKeys.length === enKeys.length && z
 check('every rendered key is translated', zhKeys.every((key) => typeof dictionaries.zh[key] === 'string' && dictionaries.zh[key].length > 0), 'empty value')
 
 check('one style element was appended', styleNodes.length === 1, String(styleNodes.length))
-check('style is tagged with the package name', styleNodes[0].dataset.plugin === 'dsh-naming-translator', JSON.stringify(styleNodes[0].dataset))
-check('style declares the CSS resource', styleNodes[0].dataset.pluginCss === 'dsh-naming-translator/client.css', JSON.stringify(styleNodes[0].dataset))
+check('style is tagged with the package name', styleNodes[0].dataset.plugin === '@xpeanut/dsh-naming-translator', JSON.stringify(styleNodes[0].dataset))
+check('style declares the CSS resource', styleNodes[0].dataset.pluginCss === '@xpeanut/dsh-naming-translator/client.css', JSON.stringify(styleNodes[0].dataset))
 check('style text is scoped', styleNodes[0].textContent.includes('[data-naming-translator]'), 'unscoped css')
 
 check('exactly one slot is registered', registeredSlots.length === 1, String(registeredSlots.length))

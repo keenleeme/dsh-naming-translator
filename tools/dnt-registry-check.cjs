@@ -131,6 +131,11 @@ if (fs.existsSync(shotsFile)) {
   }
 }
 
+// ── fields the registry rejects ──────────────────────────────────────────────
+// The npm mapping is collected from the registry automatically; a hand-written
+// key is a validation error, so guard against someone adding one.
+check('entry declares no npm field', !/^npm:/m.test(entry), 'a hand-written npm: key is rejected')
+
 // ── manifest requirement the registry checks automatically ───────────────────
 check('manifest declares dsh.bundle (not only dsh.client)',
   typeof manifest.dsh?.bundle?.patch === 'string', JSON.stringify(manifest.dsh))

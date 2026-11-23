@@ -25,10 +25,10 @@
  *   overlays, so an in-place dropdown would be cut off.
  * - Nothing is written outside the plugin-owned storage key.
  *
- * @module dsh-naming-translator/client
+ * @module @xpeanut/dsh-naming-translator/client
  */
 window.__ModuleLoader__.load({
-  id: 'dsh-naming-translator',
+  id: '@xpeanut/dsh-naming-translator',
   factory(require) {
     const module = { exports: {} };
     const exports = module.exports;
@@ -45,7 +45,7 @@ window.__ModuleLoader__.load({
 
     //#region constants
     /** Package name; also the module id this bundle registers under. */
-    const PACKAGE_NAME = 'dsh-naming-translator';
+    const PACKAGE_NAME = '@xpeanut/dsh-naming-translator';
     /** Locale namespace owned by this plugin. */
     const NS = 'naming-translator';
     /** Declared by ui-conversation (`kind: 'list'`, `scope: 'session'`). */

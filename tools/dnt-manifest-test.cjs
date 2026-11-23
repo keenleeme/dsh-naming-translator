@@ -11,7 +11,7 @@ function check(label, condition, detail) {
   console.log(`${condition ? 'PASS' : 'FAIL'} ${label}${condition ? '' : ` :: ${detail}`}`)
 }
 
-check('name is publishable and unscoped', manifest.name === 'dsh-naming-translator', manifest.name)
+check('name is a publishable scoped package', manifest.name === '@xpeanut/dsh-naming-translator', manifest.name)
 check('package is not marked private', manifest.private !== true, String(manifest.private))
 check('manifestVersion is 1', manifest.dsh.manifestVersion === 1, String(manifest.dsh.manifestVersion))
 check('bundle patch is declared', manifest.dsh.bundle.patch === './cordis.patch.yml', manifest.dsh.bundle.patch)
@@ -53,7 +53,7 @@ for (const locale of ['en', 'zh']) {
 }
 
 const patch = fs.readFileSync(path.join(root, 'cordis.patch.yml'), 'utf8')
-check('patch inserts the package row', /insert:/.test(patch) && patch.includes("name: 'dsh-naming-translator'"), patch)
+check('patch inserts the package row', /insert:/.test(patch) && patch.includes(`name: '${manifest.name}'`), patch)
 check('patch row id matches the client id', /id: naming-translator/.test(patch), patch)
 check('patch row name equals the manifest name', patch.includes(`'${manifest.name}'`), patch)
 

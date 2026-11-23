@@ -1,5 +1,5 @@
 {
-  "name": "dsh-naming-translator",
+  "name": "@xpeanut/dsh-naming-translator",
   "version": "1.0.0",
   "description": "Translates Chinese phrases into camelCase variable and method names from the composer tool row: built-in developer dictionary first, model fallback for anything it cannot cover.",
   "type": "module",
@@ -17,6 +17,10 @@
   "engines": {
     "node": ">=22",
     "dsh": ">=0.2.2-rc.3"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   },
   "homepage": "https://github.com/keenleeme/dsh-naming-translator#readme",
   "repository": {
