@@ -243,9 +243,36 @@ git push -u origin add-dsh-naming-translator
 
 ---
 
+## 坑四：改包名后必须清理 profile 里的旧条目
+
+把包名从 `dsh-naming-translator` 改成 `@xpeanut/dsh-naming-translator` 时，只改仓库里的文件是不够的。**profile 目录里会残留旧名字**，而且 dshmarket 会按新名字再装一份，于是同一个插件被两个名字同时占用：
+
+| 位置 | 旧名字残留 |
+|---|---|
+| `profile/package.json` → `dependencies` | `dsh-naming-translator: link:...` |
+| `profile/package.json` → `dsh.profile.bundles` | `dsh-naming-translator` |
+| `profile/.dsh-market/hot-1.yml` | `- id: mkt-naming-translator` |
+
+后果是 `plugin_manager` 的 `remove_bundle` 报 `bundle-in-use`，因为「另一个层还有条目在用这个包」，而那个「另一层」就是市场写的行。即使 `list_plugins` 里它显示 `enabled: false`，也照样阻塞移除。
+
+清理步骤（**先备份**）：
+
+1. 删掉 `profile/cordis.patch.yml` 里市场写的 `- id: naming-translator / disabled: true / name: ... # dsh-market` 那一条，保留自己那条 `disabled: false`。两条 id 相同的行是配置问题，后一条覆盖前一条，行为难以预测。
+2. `profile/package.json` 的 `dependencies` 里删掉旧名，`dsh.profile.bundles` 里把旧名换成新名。
+3. 清空 `profile/.dsh-market/hot-1.yml`（市场会自动删除空文件）。
+4. 用 js-yaml 重新解析一遍 `cordis.patch.yml`，确认仍合法且只剩一条 `naming-translator`。
+
+清理后 `remove_bundle` 才能成功，然后重装即可。这类改动的 `application` 常是 `restart-required`，**必须重启 DSH** 才真的换掉运行中的模块。
+
+## 坑五：验证脚本要读「已安装的副本」
+
+`tools/dnt-served-check.mjs` 一开始用**工作区**文件的 mtime 算 client bundle 的 artifact revision，于是向 Host 查询了一个它从不承认的 rev，必然 404。从 npm 安装的副本有自己的时间戳，rev 与工作区不同。
+
+正确做法是遍历 profile 下实际安装的副本算 rev，并从 `DSH_WEB_URL` 取地址——Web 端口每次启动都可能变，写死会失效。
+
 ## 已知的发布限制
 
 - **只输出 camelCase**。PascalCase / snake_case / kebab-case / CONSTANT 都没实现，README 里已如实写明。
-- **模型兜底依赖用户自己的 provider**。没配模型时字典仍可用，面板会显示「当前环境无法调用模型」。
+- **模型兜底依赖用户自己的 provider**。没配模型时字典仍可用，面板会显示「当前环境无法调用模型」。默认 provider 不可达时会自动回退到其它有模型的 provider（见 README 的「路由选择与自动回退」）。
 - **词典是人工维护的**。领域专有词靠预置词条 + 用户自定义，不承诺覆盖一切。
 - **`tools/` 不进发布包**。自检脚本只在仓库里，`files` 已排除。
