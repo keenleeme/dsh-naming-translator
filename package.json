@@ -1,6 +1,6 @@
 {
   "name": "@xpeanut/dsh-naming-translator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Translates Chinese phrases into camelCase variable and method names from the composer tool row: built-in developer dictionary first, model fallback for anything it cannot cover.",
   "type": "module",
   "license": "MIT",

@@ -162,18 +162,34 @@ async function readBody(request) {
 }
 
 /**
- * Resolve the model route for an auxiliary call: the profile's default model
- * first, then the first provider that advertises a model.
+ * List the model routes to try, best first: the profile's default model, then
+ * every other provider that advertises at least one model.
+ *
+ * A list rather than one route because the default model is a user setting that
+ * can point at an endpoint which is not running — a local proxy that is down, a
+ * typo in a base URL. Trying the configured default first keeps the user's
+ * choice authoritative, and the fallbacks keep the panel working when that
+ * choice cannot reach anything.
+ *
  * @param ctx - Host context.
- * @returns the route, or `undefined` when the composition has none.
+ * @returns candidate routes in preference order; empty when none is configured.
  */
-async function resolveRoute(ctx) {
+async function resolveRoutes(ctx) {
+  const routes = []
+  const seen = new Set()
+  const push = (provider, model) => {
+    if (typeof provider !== 'string' || provider.length === 0) return
+    if (typeof model !== 'string' || model.length === 0) return
+    const key = `${provider}\0${model}`
+    if (seen.has(key)) return
+    seen.add(key)
+    routes.push({ provider, model })
+  }
+
   const fallback = ctx.get?.('agentDefaultModel')
   const selection = typeof fallback?.currentSelection === 'function' ? fallback.currentSelection() : undefined
-  if (typeof selection?.provider === 'string' && selection.provider.length > 0
-    && typeof selection.model === 'string' && selection.model.length > 0) {
-    return { provider: selection.provider, model: selection.model }
-  }
+  push(selection?.provider, selection?.model)
+
   for (const provider of ctx.llm.listProviders()) {
     let models
     try {
@@ -182,9 +198,35 @@ async function resolveRoute(ctx) {
       continue
     }
     const first = models.find((model) => typeof model.id === 'string' && model.id.length > 0)
-    if (first !== undefined) return { provider: provider.id, model: first.id }
+    if (first !== undefined) push(provider.id, first.id)
   }
-  return undefined
+  return routes
+}
+
+/**
+ * Explain one route's failure in terms a developer can act on.
+ *
+ * `TRANSPORT` is the important case: the provider endpoint did not answer at
+ * all, which in practice means a local proxy that is not running. The bare code
+ * tells a user nothing, so the hint names what to check.
+ *
+ * @param code - provider-neutral failure code from the LLM service.
+ * @returns a sentence appended to that route's entry in the error report.
+ */
+function failureHint(code) {
+  switch (code) {
+    case 'TRANSPORT':
+      return 'endpoint not reachable; check that the provider is running'
+    case 'NO_ADAPTER':
+      return 'no adapter owns this provider'
+    case 'MISSING_CREDENTIAL':
+    case 'INVALID_CREDENTIAL':
+      return 'missing or invalid credential'
+    case 'NO_GLOSS':
+      return 'the model did not answer with English words'
+    default:
+      return ''
+  }
 }
 
 /**
@@ -192,35 +234,71 @@ async function resolveRoute(ctx) {
  * @param ctx - Host context.
  * @param phrase - the Chinese phrase to gloss.
  * @param signal - cancellation for this call.
- * @returns the route and the assembled answer text.
+ * @returns the route used and the assembled answer text.
  */
 async function gloss(ctx, phrase, signal) {
-  const route = await resolveRoute(ctx)
-  if (route === undefined) {
+  const routes = await resolveRoutes(ctx)
+  if (routes.length === 0) {
     throw Object.assign(new Error('No model route is configured for the naming translator'), { code: 'NO_MODEL' })
   }
-  const chunks = []
-  let answer = ''
-  const stream = ctx.llm.stream({
-    provider: route.provider,
-    model: route.model,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: [{ type: 'text', text: userPrompt(phrase) }] }],
-    temperature: 0,
-    maxTokens: 32,
-    signal,
-  })
-  for await (const chunk of stream) {
-    if (chunk.type === 'text-delta') answer += chunk.text
-    else if (chunk.type === 'finish' && chunk.reason.kind === 'error') {
-      throw Object.assign(new Error(chunk.reason.failure.message), { code: chunk.reason.failure.code })
-    } else if (chunk.type === 'finish' && chunk.reason.kind === 'aborted') {
-      throw Object.assign(new Error('The model call was interrupted'), { code: 'ABORTED' })
-    } else if (chunk.type === 'block-end' && chunk.block.type === 'text') {
-      chunks.push(chunk.block.text)
+
+  const failures = []
+  for (const route of routes) {
+    signal.throwIfAborted()
+    const chunks = []
+    let answer = ''
+    try {
+      const stream = ctx.llm.stream({
+        provider: route.provider,
+        model: route.model,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: [{ type: 'text', text: userPrompt(phrase) }] }],
+        temperature: 0,
+        maxTokens: 32,
+        signal,
+      })
+      for await (const chunk of stream) {
+        if (chunk.type === 'text-delta') answer += chunk.text
+        else if (chunk.type === 'finish' && chunk.reason.kind === 'error') {
+          throw Object.assign(new Error(chunk.reason.failure.message), { code: chunk.reason.failure.code })
+        } else if (chunk.type === 'finish' && chunk.reason.kind === 'aborted') {
+          throw Object.assign(new Error('The model call was interrupted'), { code: 'ABORTED' })
+        } else if (chunk.type === 'block-end' && chunk.block.type === 'text') {
+          chunks.push(chunk.block.text)
+        }
+      }
+      const text = answer.length > 0 ? answer : chunks.join(' ')
+      // An answer with no usable words is a failure of this route, not a
+      // success: trying the next one is cheaper than asking the user to retry.
+      if (glossWords(text).length === 0) {
+        failures.push({ route, code: 'NO_GLOSS', message: 'the model returned no usable English words' })
+        continue
+      }
+      return { route, answer: text }
+    } catch (error) {
+      if (signal.aborted) throw error
+      failures.push({
+        route,
+        code: typeof error?.code === 'string' ? error.code : 'MODEL_FAILED',
+        message: typeof error?.message === 'string' ? error.message : 'the model call failed',
+      })
+      // An abort is the caller's, not a reason to try another route.
+      if (error?.code === 'ABORTED') throw error
     }
   }
-  return { route, answer: answer.length > 0 ? answer : chunks.join(' ') }
+
+  // Every route failed. Report the first failure, but name every route tried so
+  // a misconfigured default is visible rather than silently masked.
+  const described = failures.map((failure) => {
+    const hint = failureHint(failure.code)
+    const suffix = hint.length > 0 ? ` ${hint}` : ` ${failure.message}`
+    return `${failure.route.provider}/${failure.route.model} -> ${failure.code}:${suffix}`
+  })
+  const chosen = failures[0]
+  throw Object.assign(
+    new Error(`No model route answered the naming translator. Tried: ${described.join('; ')}.`),
+    { code: chosen !== undefined ? chosen.code : 'MODEL_FAILED' },
+  )
 }
 
 /**
@@ -299,6 +377,7 @@ export function apply(ctx) {
       sendJson(response, 200, { ok: true, source: 'model', cached: false, ...value })
     } catch (error) {
       if (lifetime.signal.aborted) return
+      // The gloss() call already names every route it tried; keep its message.
       sendJson(response, 502, {
         ok: false,
         code: typeof error?.code === 'string' ? error.code : 'MODEL_FAILED',

@@ -812,7 +812,9 @@ window.__ModuleLoader__.load({
           } else {
             setEntry(null);
           }
-          setError(failure.message);
+          // The Host already names every route it tried; prefix it so a Chinese
+          // reader knows which part is the model failure and which is advice.
+          setError(t('panel.modelFailed', { detail: failure.message }));
         } finally {
           if (abortRef.current === controller) abortRef.current = null;
           setBusy(false);
@@ -1046,6 +1048,7 @@ window.__ModuleLoader__.load({
       'panel.sourceModel': '模型',
       'panel.sourceCustom': '自定义',
       'panel.noModel': '当前环境无法调用模型，已按词典给出结果。',
+      'panel.modelFailed': '模型调用失败：{detail}',
       'panel.copyFailed': '复制失败，请手动选择文本。',
       'panel.close': '关闭',
     };
@@ -1072,6 +1075,7 @@ window.__ModuleLoader__.load({
       'panel.sourceModel': 'Model',
       'panel.sourceCustom': 'Custom',
       'panel.noModel': 'No model route is reachable here, so the dictionary answer is shown.',
+      'panel.modelFailed': 'The model call failed: {detail}',
       'panel.copyFailed': 'Could not copy; select the text manually.',
       'panel.close': 'Close',
     };

@@ -78,7 +78,25 @@ body:    { "text": "订单分页查询" }
 →        { "ok": true, "identifier": "orderPageQuery", "words": [...], "source": "model", "cached": false }
 ```
 
-Host 用 `ctx.llm.stream()` 发一次单轮请求，模型只需要回一串英文词；**标识符由 Host 自己折成 camelCase**，所以即使模型啰嗦地解释了一整句，也不会把散文写进变量名。默认模型取 profile 的 `agent-default-model`，没有则回退到第一个有模型的 provider。
+Host 用 `ctx.llm.stream()` 发一次单轮请求，模型只需要回一串英文词；**标识符由 Host 自己折成 camelCase**，所以即使模型啰嗦地解释了一整句，也不会把散文写进变量名。
+
+### 路由选择与自动回退
+
+Host 按顺序尝试：**profile 的 `agent-default-model` → 其它每个能列出模型的 provider**。第一个成功回答的就用它。
+
+这么做是因为默认模型是用户配置，可能指向一个没在跑的端点（例如本地代理挂了）。这种情况下若只有一条路由，整个模型兜底就废了；有了回退，面板照常工作，返回体里的 `route` 字段会告诉你实际是哪个 provider 回答的。
+
+全部路由都失败时，错误信息会**逐条列出试过的路由和各自的失败码**，而不是只丢一句 `Connection error.`：
+
+```json
+{
+  "ok": false,
+  "code": "TRANSPORT",
+  "message": "No model route answered the naming translator. Tried: kilo/kilo-auto/free -> TRANSPORT: endpoint not reachable; check that the provider is running."
+}
+```
+
+排查 `TRANSPORT` 时按这个顺序看：provider 的 `baseURL` 端口是否在监听、`apiKeyEnv` 指的环境变量是否已设置、provider 是否真的被 adapter 注册。
 
 该路由的行为边界：
 

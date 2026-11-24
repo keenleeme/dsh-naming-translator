@@ -150,5 +150,113 @@ check('trailing prose is dropped', result.status === 200 && result.parsed.identi
 for (const { dispose } of effects) if (typeof dispose === 'function') dispose()
 check('two effects were registered', effects.length === 2, String(effects.length))
 
+// ── route failover ────────────────────────────────────────────────────────
+// The profile default can point at an endpoint that is not running (a local
+// proxy that is down). The panel must still answer, and when nothing answers
+// the error has to name every route so the misconfiguration is visible.
+
+/** Mount a fresh instance whose providers behave as `behaviour` describes. */
+function mountWith(behaviour) {
+  const mounted = []
+  const localEffects = []
+  const localCtx = {
+    effect(fn) { const dispose = fn(); localEffects.push(dispose) },
+    get(name) {
+      if (name === 'agentDefaultModel') {
+        return { currentSelection: () => ({ provider: behaviour.defaultProvider, model: behaviour.defaultModel }) }
+      }
+      return undefined
+    },
+    llm: {
+      listProviders: () => behaviour.providers.map((provider) => ({ id: provider.id, name: provider.id })),
+      listModels: async (id) => {
+        const provider = behaviour.providers.find((entry) => entry.id === id)
+        return provider === undefined ? [] : [{ provider: id, id: provider.model, name: provider.model }]
+      },
+      stream(options) {
+        const provider = behaviour.providers.find((entry) => entry.id === options.provider)
+        return (async function* generate() {
+          if (provider?.fails === true) {
+            yield { type: 'finish', reason: { kind: 'error', failure: { code: 'TRANSPORT', message: 'Connection error.' } } }
+            return
+          }
+          const text = provider?.returns ?? 'order page query'
+          yield { type: 'block-start', index: 0, blockType: 'text' }
+          yield { type: 'text-delta', index: 0, text }
+          yield { type: 'block-end', index: 0, block: { type: 'text', text } }
+          yield { type: 'finish', reason: { kind: 'stop' } }
+        })()
+      },
+    },
+    webServer: { register(route) { mounted.push(route); return () => {} } },
+  }
+  apply(localCtx)
+  // Keep the effects alive: one of them aborts in-flight model calls on
+  // teardown, and disposing before the request would cancel it.
+  return { handler: mounted[0], dispose: () => { for (const fn of localEffects) if (typeof fn === 'function') fn() } }
+}
+
+/** Call a mounted route with one phrase. */
+async function ask(handler, text) {
+  let body = ''
+  let status = 0
+  const response = { writeHead(code) { status = code }, end(chunk) { if (typeof chunk === 'string') body += chunk } }
+  const request = {
+    method: 'POST',
+    headers: { 'x-naming-translator': '1' },
+    async *[Symbol.asyncIterator]() { yield Buffer.from(JSON.stringify({ text }), 'utf8') },
+  }
+  await handler.handler(request, response)
+  let parsed
+  try { parsed = JSON.parse(body) } catch { parsed = undefined }
+  return { status, parsed, raw: body }
+}
+
+// A broken default falls back to a working provider.
+const failoverHandler = mountWith({
+  defaultProvider: 'kilo',
+  defaultModel: 'kilo-auto/free',
+  providers: [
+    { id: 'kilo', model: 'kilo-auto/free', fails: true },
+    { id: 'workbuddy', model: 'deepseek-v4.1-flash', returns: 'coupon redemption' },
+  ],
+})
+result = await ask(failoverHandler.handler, '优惠券核销')
+check('a dead default falls back to a working provider',
+  result.status === 200 && result.parsed.identifier === 'couponRedemption', result.raw)
+check('the answer names the provider that actually answered',
+  result.parsed.route.provider === 'workbuddy', result.raw)
+
+// When every route fails, the report names each one and hints at the cause.
+const deadHandler = mountWith({
+  defaultProvider: 'kilo',
+  defaultModel: 'kilo-auto/free',
+  providers: [
+    { id: 'kilo', model: 'kilo-auto/free', fails: true },
+    { id: 'backup', model: 'backup-model', fails: true },
+  ],
+})
+result = await ask(deadHandler.handler, '优惠券核销')
+check('every dead route is a 502', result.status === 502, result.raw)
+check('the error keeps the upstream code', result.parsed.code === 'TRANSPORT', result.raw)
+check('the error names every route tried',
+  result.parsed.message.includes('kilo/kilo-auto/free') && result.parsed.message.includes('backup/backup-model'),
+  result.parsed.message)
+check('the error says what to check, not just "Connection error."',
+  /not reachable|check that the provider is running/i.test(result.parsed.message), result.parsed.message)
+
+// A route whose answer carries no words must not block the next one.
+const emptyFirstHandler = mountWith({
+  defaultProvider: 'first',
+  defaultModel: 'm1',
+  providers: [
+    { id: 'first', model: 'm1', returns: '……' },
+    { id: 'second', model: 'm2', returns: 'store channel' },
+  ],
+})
+result = await ask(emptyFirstHandler.handler, '门店渠道')
+check('an empty answer falls through to the next route',
+  result.status === 200 && result.parsed.identifier === 'storeChannel', result.raw)
+
 console.log(failures === 0 ? '\nHOST CHECKS PASSED' : `\n${failures} HOST CHECK(S) FAILED`)
 process.exit(failures === 0 ? 0 : 1)
